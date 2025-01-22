@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use App\Models\Product;
 class ProductController extends Controller
 {
@@ -29,24 +30,30 @@ class ProductController extends Controller
     {
         $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'product_name' => 'required|string|max:255',
-            'Price' => 'required|double|min:1',
-            'Description' => 'required|Text',
-            'qty' => 'required|int|min:1'
+            'product_name' => 'required|unique:products,product_name|string|max:255',
+            'product_image' => 'required|image:jpg,jpeg,png',
+            'price' => 'required|integer',
+            'stock' => 'required|integer',
+            'description' => 'required|string'
             
         ]);
+
+        $image_name = time() . "." . $request->product_image->extension();
+        $request->product_image->move(public_path("upload/product"), $image_name);
 
         Product::create([
             'category_id' => $request->category_id,
             'product_name' => $request->product_name,
-            'Price'=> $request->Price,
-            'Description' => $request->Description,
-            'qty' => $request->qty
+            'product_image' => url("upload/product") . "/" . $image_name,
+            'product_image_name' => $image_name,
+            'price'=> $request->price,
+            'stock' => $request->stock,
+            'description' => $request->description
         ]);
 
         return response([
             "message" => "Product has been created",
-        ]);
+        ], 201);
     }
 
     /**
@@ -69,48 +76,70 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request,  $product)
     {
-        
-        $data = Product::find($id);
 
-        if(isset($data)){
+       
             $request->validate([
-                'product_name' => 'required|string|unique:product,product_name'
+                'category_id' => 'required|exists:categories,id',
+                'product_name' => 'required|unique:products,product_name|string|max:255',
+                'price' => 'required|integer',
+                'stock' => 'required|integer',
+                'description' => 'required|string'
             ]);
-            $data->product_name = $request->product_name;
-            $data->save();
-            return response([
-                "message" => "Product has been updated",
-                "data" => $data
-            ]);
-        }
-        response([
-            "message" => "Page or Data Not Found",
-            "data" => $data
-        ],404);
-        
+            
+            $data = Product::find($product);
+            
+            if(!isset($data)){
+                return response([
+                    "message" => "Product not found",
+                ], 404);
+            }
+            if (isset($request->product_image)){
+                $request_>validate([  
+                    'product_image' => 'required|image:jpg,jpeg,png'
 
+            ]);
+            $request->product_image->move(public_path("upload/product"), $data->product_image_name);
+            }
+            
+            $data->category_id = $request->category_id;
+            $data->product_name = $request->product_name;
+            $data->price = $request->price;
+            $data->stock = $request->stock;
+            $data->description = $request->description;
+            $data->save();
+
+            return response([
+                "message" => "product has been update!",
+    
+            ], 200);
+
+        
+        
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($product)
     {
-        $data = Product::find($id);
+        $data = Product::find($product);
 
-        if(isset($data)){
-            $data->delete();
+        if(!isset($data)){
             return response([
-                "message" => "Product has been deleted",
-                "data" => $data
-            ]);
+                "message" => "Product or Data not found",
+            ], 404);
         }
-             response([
-            "message" => "Page or Data Not Found",
-            "data" => $data
-        ],404);
+        
+        File::delete(public_path("upload/product") . "/" . $data->product_image_name);
+
+        $data->delete();
+
+            return response([
+            "message" => "product has been deleted!",
+
+        ],200);
         
     }
 }
