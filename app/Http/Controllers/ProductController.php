@@ -96,7 +96,7 @@ class ProductController extends Controller
                 ], 404);
             }
             if (isset($request->product_image)){
-                $request_>validate([  
+                $request->validate([  
                     'product_image' => 'required|image:jpg,jpeg,png'
 
             ]);
